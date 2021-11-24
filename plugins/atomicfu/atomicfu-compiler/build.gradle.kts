@@ -44,7 +44,8 @@ repositories {
 }
 
 dependencies {
-    compileOnly(intellijCoreDep()) { includeJars("intellij-core", "asm-all", rootProject = rootProject) }
+    compileOnly(intellijCore())
+    compileOnly(intellijDependency("asm-all"))
 
     compileOnly(project(":compiler:plugin-api"))
     compileOnly(project(":compiler:cli-common"))
