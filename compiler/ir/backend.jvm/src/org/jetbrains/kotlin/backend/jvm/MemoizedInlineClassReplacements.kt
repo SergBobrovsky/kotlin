@@ -16,6 +16,7 @@ import org.jetbrains.kotlin.backend.jvm.codegen.parentClassId
 import org.jetbrains.kotlin.backend.jvm.ir.isCompiledToJvmDefault
 import org.jetbrains.kotlin.backend.jvm.ir.isStaticInlineClassReplacement
 import org.jetbrains.kotlin.codegen.state.KotlinTypeMapper
+import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.descriptors.DescriptorVisibilities
 import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.ir.IrBuiltIns
@@ -79,14 +80,19 @@ class MemoizedInlineClassReplacements(
                             createStaticReplacement(it)
                     }
 
-                // Otherwise, mangle functions with mangled parameters, ignoring constructors
-                it is IrSimpleFunction && !it.isFromJava() && (it.hasMangledParameters || mangleReturnTypes && it.hasMangledReturnType) ->
+                // Otherwise, mangle functions with mangled parameters, ignoring constructors and default property accessor of annotation class
+                it is IrSimpleFunction && !it.isFromJava()
+                        && (it.hasMangledParameters || mangleReturnTypes && it.hasMangledReturnType)
+                        && !it.isDefaultPropertyAccessorOfAnnotationClass() ->
                     createMethodReplacement(it)
 
                 else ->
                     null
             }
         }
+
+    private fun IrFunction.isDefaultPropertyAccessorOfAnnotationClass(): Boolean =
+        origin == IrDeclarationOrigin.DEFAULT_PROPERTY_ACCESSOR && (parent as? IrClass)?.kind == ClassKind.ANNOTATION_CLASS
 
     private fun IrFunction.isRemoveAtSpecialBuiltinStub() =
         origin == IrDeclarationOrigin.IR_BUILTINS_STUB &&
