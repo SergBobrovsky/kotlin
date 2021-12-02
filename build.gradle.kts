@@ -627,6 +627,13 @@ val syncMutedTests = tasks.register("syncMutedTests") {
     dependsOn(":compiler:tests-mutes:tc-integration:run")
 }
 
+tasks.register("createIdeaHomeForTests") {
+    outputs.file(ideaBuildNumberFileForTests())
+    doFirst {
+        writeIdeaBuildNumberForTests()
+    }
+}
+
 val copyCompilerToIdeaPlugin by task<Copy> {
     dependsOn(dist)
     into(ideaPluginDir)
