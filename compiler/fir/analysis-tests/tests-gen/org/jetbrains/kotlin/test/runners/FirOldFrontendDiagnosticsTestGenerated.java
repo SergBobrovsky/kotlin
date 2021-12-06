@@ -8868,6 +8868,12 @@ public class FirOldFrontendDiagnosticsTestGenerated extends AbstractFirDiagnosti
             }
 
             @Test
+            @TestMetadata("usageOnEnum.kt")
+            public void testUsageOnEnum() throws Exception {
+                runTest("compiler/testData/diagnostics/tests/deprecated/usageOnEnum.kt");
+            }
+
+            @Test
             @TestMetadata("warningOnConstructorErrorOnClass.kt")
             public void testWarningOnConstructorErrorOnClass() throws Exception {
                 runTest("compiler/testData/diagnostics/tests/deprecated/warningOnConstructorErrorOnClass.kt");
