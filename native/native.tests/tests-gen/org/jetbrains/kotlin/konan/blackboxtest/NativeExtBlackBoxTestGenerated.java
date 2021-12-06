@@ -15652,11 +15652,8 @@ public class NativeExtBlackBoxTestGenerated extends AbstractNativeBlackBoxTest {
             @Test
             @TestMetadata("boxResultInlineClassOfConstructorCall.kt")
             public void testBoxResultInlineClassOfConstructorCall() throws Exception {
+                // There is a registered source transformer for the testcase: TransformersFunctions::removeOptionalJvmInlineAnnotation
                 runTest("compiler/testData/codegen/box/inlineClasses/boxResultInlineClassOfConstructorCall.kt");
-                /*
-                  There is a registered source transformer for the testcase:
-                  TransformersFunctions::removeOptionalJvmInlineAnnotation
-                */
             }
 
             @Test
