@@ -7731,12 +7731,6 @@ public class NativeExtBlackBoxTestGenerated extends AbstractNativeBlackBoxTest {
             }
 
             @Test
-            @TestMetadata("kt49645.kt")
-            public void testKt49645() throws Exception {
-                runTest("compiler/testData/codegen/box/coroutines/kt49645.kt");
-            }
-
-            @Test
             @TestMetadata("lastExpressionIsLoop.kt")
             public void testLastExpressionIsLoop() throws Exception {
                 runTest("compiler/testData/codegen/box/coroutines/lastExpressionIsLoop.kt");
@@ -11547,6 +11541,12 @@ public class NativeExtBlackBoxTestGenerated extends AbstractNativeBlackBoxTest {
                 @TestMetadata("kt49793_object.kt")
                 public void testKt49793_object() throws Exception {
                     runTest("compiler/testData/codegen/box/delegatedProperty/delegateToAnother/kt49793_object.kt");
+                }
+
+                @Test
+                @TestMetadata("kt50019_noOptimizedCallableReferences.kt")
+                public void testKt50019_noOptimizedCallableReferences() throws Exception {
+                    runTest("compiler/testData/codegen/box/delegatedProperty/delegateToAnother/kt50019_noOptimizedCallableReferences.kt");
                 }
 
                 @Test
