@@ -37,6 +37,7 @@ import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinJvmAndroidCompilation
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jetbrains.kotlin.gradle.tasks.locateTask
 import org.jetbrains.kotlin.gradle.tasks.registerTask
+import org.jetbrains.kotlin.gradle.utils.SingleWarningPerBuild
 import org.jetbrains.kotlin.gradle.utils.isConfigurationCacheAvailable
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -109,7 +110,7 @@ class Kapt3GradleSubplugin @Inject internal constructor(private val registry: To
         fun Project.isUseWorkerApi(): Boolean {
             return getBooleanOptionValue(BooleanOption.KAPT_USE_WORKER_API) {
                 """
-                |'${BooleanOption.KAPT_USE_WORKER_API}' is deprecated and scheduled to be removed in Kotlin 1.7 release.
+                |'${BooleanOption.KAPT_USE_WORKER_API.optionName}' is deprecated and scheduled to be removed in Kotlin 1.7 release.
                 """.trimMargin()
             }
         }
@@ -184,7 +185,7 @@ class Kapt3GradleSubplugin @Inject internal constructor(private val registry: To
         ): Boolean {
             val value = findProperty(booleanOption.optionName)
             if (value != null && deprecationMessage != null) {
-                logger.warn(deprecationMessage())
+                SingleWarningPerBuild.show(this, deprecationMessage())
             }
             return when (value) {
                 is Boolean -> value
