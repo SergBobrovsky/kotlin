@@ -15651,7 +15651,7 @@ public class NativeExtBlackBoxTestGenerated extends AbstractNativeBlackBoxTest {
 
             @Test
             @TestMetadata("boxResultInlineClassOfConstructorCall.kt")
-            public void testBoxResultInlineClassOfConstructorCall_valueClasses() throws Exception {
+            public void testBoxResultInlineClassOfConstructorCall() throws Exception {
                 runTest("compiler/testData/codegen/box/inlineClasses/boxResultInlineClassOfConstructorCall.kt");
                 /*
                   There is a registered source transformer for the testcase:

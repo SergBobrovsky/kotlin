@@ -14753,7 +14753,7 @@ public class IrJsCodegenBoxTestGenerated extends AbstractIrJsCodegenBoxTest {
 
         @Test
         @TestMetadata("boxResultInlineClassOfConstructorCall.kt")
-        public void testBoxResultInlineClassOfConstructorCall_valueClasses() throws Exception {
+        public void testBoxResultInlineClassOfConstructorCall() throws Exception {
             runTest("compiler/testData/codegen/box/inlineClasses/boxResultInlineClassOfConstructorCall.kt", TransformersFunctions::removeOptionalJvmInlineAnnotation);
         }
 
