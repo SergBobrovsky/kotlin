@@ -10,6 +10,7 @@ import org.jetbrains.kotlin.test.util.KtTestUtil;
 import org.jetbrains.kotlin.konan.blackboxtest.support.group.NativeBlackBoxTestCaseGroupProvider;
 import org.jetbrains.kotlin.konan.blackboxtest.support.group.ExtTestCaseGroupProvider;
 import org.jetbrains.kotlin.test.TargetBackend;
+import org.jetbrains.kotlin.test.runners.TransformersFunctions;
 import org.jetbrains.kotlin.test.TestMetadata;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -7728,12 +7729,6 @@ public class NativeExtBlackBoxTestGenerated extends AbstractNativeBlackBoxTest {
             @TestMetadata("kt49168.kt")
             public void testKt49168() throws Exception {
                 runTest("compiler/testData/codegen/box/coroutines/kt49168.kt");
-            }
-
-            @Test
-            @TestMetadata("kt49645.kt")
-            public void testKt49645() throws Exception {
-                runTest("compiler/testData/codegen/box/coroutines/kt49645.kt");
             }
 
             @Test
@@ -15598,7 +15593,7 @@ public class NativeExtBlackBoxTestGenerated extends AbstractNativeBlackBoxTest {
         @NativeBlackBoxTestCaseGroupProvider(ExtTestCaseGroupProvider.class)
         public class InlineClasses {
             public InlineClasses() {
-                register("compiler/testData/codegen/box/inlineClasses/boxResultInlineClassOfConstructorCall.kt", s -> s.replaceAll("OPTIONAL_JVM_INLINE_ANNOTATION", ""));
+                register("compiler/testData/codegen/box/inlineClasses/boxResultInlineClassOfConstructorCall.kt", TransformersFunctions::removeOptionalJvmInlineAnnotation);
             }
 
             @Test
@@ -15660,7 +15655,7 @@ public class NativeExtBlackBoxTestGenerated extends AbstractNativeBlackBoxTest {
                 runTest("compiler/testData/codegen/box/inlineClasses/boxResultInlineClassOfConstructorCall.kt");
                 /*
                   There is a registered source transformer for the testcase:
-                  s -> s.replaceAll("OPTIONAL_JVM_INLINE_ANNOTATION", "")
+                  TransformersFunctions::removeOptionalJvmInlineAnnotation
                 */
             }
 
