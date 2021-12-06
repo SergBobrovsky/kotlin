@@ -28,7 +28,7 @@ namespace {
 using SimpleAllocator = gc::AlignedAllocator;
 
 template <size_t DataAlignment>
-using ObjectFactoryStorage = mm::internal::ObjectFactoryStorage<DataAlignment, SimpleAllocator>;
+using ObjectFactoryStorage = gc::internal::ObjectFactoryStorage<DataAlignment, SimpleAllocator>;
 
 using ObjectFactoryStorageRegular = ObjectFactoryStorage<alignof(void*)>;
 
@@ -767,7 +767,7 @@ public:
     };
 };
 
-using ObjectFactory = mm::ObjectFactory<GC>;
+using ObjectFactory = gc::ObjectFactory<GC>;
 
 struct Payload {
     ObjHeader* field1;
@@ -800,7 +800,7 @@ TEST(ObjectFactoryTest, CreateObject) {
     testing::Mock::VerifyAndClearExpectations(&allocator);
     EXPECT_THAT(allocSize, testing::Gt<size_t>(type.typeInfo()->instanceSize_));
     EXPECT_THAT(allocAddress, testing::Ne(nullptr));
-    EXPECT_THAT(mm::GetAllocatedHeapSize(object), allocSize);
+    EXPECT_THAT(gc::GetAllocatedHeapSize<ObjectFactory>(object), allocSize);
 
     threadQueue.Publish();
 
@@ -836,7 +836,7 @@ TEST(ObjectFactoryTest, CreateObjectArray) {
     testing::Mock::VerifyAndClearExpectations(&allocator);
     EXPECT_THAT(allocSize, testing::Gt<size_t>(-theArrayTypeInfo->instanceSize_ * 3));
     EXPECT_THAT(allocAddress, testing::Ne(nullptr));
-    EXPECT_THAT(mm::GetAllocatedHeapSize(array->obj()), allocSize);
+    EXPECT_THAT(gc::GetAllocatedHeapSize<ObjectFactory>(array->obj()), allocSize);
 
     threadQueue.Publish();
 
@@ -872,7 +872,7 @@ TEST(ObjectFactoryTest, CreateCharArray) {
     testing::Mock::VerifyAndClearExpectations(&allocator);
     EXPECT_THAT(allocSize, testing::Gt<size_t>(-theCharArrayTypeInfo->instanceSize_ * 3));
     EXPECT_THAT(allocAddress, testing::Ne(nullptr));
-    EXPECT_THAT(mm::GetAllocatedHeapSize(array->obj()), allocSize);
+    EXPECT_THAT(gc::GetAllocatedHeapSize<ObjectFactory>(array->obj()), allocSize);
 
     threadQueue.Publish();
 

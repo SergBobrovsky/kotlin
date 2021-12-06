@@ -320,11 +320,11 @@ extern "C" void Kotlin_native_internal_GC_setThreshold(ObjHeader*, int32_t value
     if (value < 0) {
         ThrowIllegalArgumentException();
     }
-    mm::GlobalData::Instance().gcScheduler().config().threshold = static_cast<size_t>(value);
+    mm::GlobalData::Instance().gc().GCSchedulerConfig().threshold = static_cast<size_t>(value);
 }
 
 extern "C" int32_t Kotlin_native_internal_GC_getThreshold(ObjHeader*) {
-    auto threshold = mm::GlobalData::Instance().gcScheduler().config().threshold.load();
+    auto threshold = mm::GlobalData::Instance().gc().GCSchedulerConfig().threshold.load();
     auto maxValue = std::numeric_limits<int32_t>::max();
     if (threshold > static_cast<size_t>(maxValue)) {
         return maxValue;
@@ -346,11 +346,11 @@ extern "C" void Kotlin_native_internal_GC_setThresholdAllocations(ObjHeader*, in
     if (value < 0) {
         ThrowIllegalArgumentException();
     }
-    mm::GlobalData::Instance().gcScheduler().config().allocationThresholdBytes = static_cast<size_t>(value);
+    mm::GlobalData::Instance().gc().GCSchedulerConfig().allocationThresholdBytes = static_cast<size_t>(value);
 }
 
 extern "C" int64_t Kotlin_native_internal_GC_getThresholdAllocations(ObjHeader*) {
-    auto threshold = mm::GlobalData::Instance().gcScheduler().config().allocationThresholdBytes.load();
+    auto threshold = mm::GlobalData::Instance().gc().GCSchedulerConfig().allocationThresholdBytes.load();
     auto maxValue = std::numeric_limits<int64_t>::max();
     if (threshold > static_cast<size_t>(maxValue)) {
         return maxValue;
@@ -359,11 +359,11 @@ extern "C" int64_t Kotlin_native_internal_GC_getThresholdAllocations(ObjHeader*)
 }
 
 extern "C" void Kotlin_native_internal_GC_setTuneThreshold(ObjHeader*, KBoolean value) {
-    mm::GlobalData::Instance().gcScheduler().config().autoTune = value;
+    mm::GlobalData::Instance().gc().GCSchedulerConfig().autoTune = value;
 }
 
 extern "C" KBoolean Kotlin_native_internal_GC_getTuneThreshold(ObjHeader*) {
-    return mm::GlobalData::Instance().gcScheduler().config().autoTune.load();
+    return mm::GlobalData::Instance().gc().GCSchedulerConfig().autoTune.load();
 }
 
 extern "C" OBJ_GETTER(Kotlin_native_internal_GC_detectCycles, ObjHeader*) {
@@ -536,13 +536,13 @@ extern "C" void CheckGlobalsAccessible() {
 extern "C" RUNTIME_NOTHROW ALWAYS_INLINE void Kotlin_mm_safePointFunctionPrologue() {
     auto* threadData = mm::ThreadRegistry::Instance().CurrentThreadData();
     AssertThreadState(threadData, ThreadState::kRunnable);
-    threadData->gc().SafePointFunctionPrologue();
+    gc::SafePointFunctionPrologue(threadData->gc());
 }
 
 extern "C" RUNTIME_NOTHROW ALWAYS_INLINE void Kotlin_mm_safePointWhileLoopBody() {
     auto* threadData = mm::ThreadRegistry::Instance().CurrentThreadData();
     AssertThreadState(threadData, ThreadState::kRunnable);
-    threadData->gc().SafePointLoopBody();
+    gc::SafePointLoopBody(threadData->gc());
 }
 
 extern "C" ALWAYS_INLINE RUNTIME_NOTHROW void Kotlin_mm_switchThreadStateNative() {
@@ -566,5 +566,3 @@ ALWAYS_INLINE kotlin::CalledFromNativeGuard::CalledFromNativeGuard(bool reentran
     thread_ = mm::GetMemoryState();
     oldState_ = SwitchThreadState(thread_, ThreadState::kRunnable, reentrant_);
 }
-
-const bool kotlin::kSupportsMultipleMutators = kotlin::gc::kSupportsMultipleMutators;

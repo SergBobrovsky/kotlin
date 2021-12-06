@@ -105,8 +105,17 @@ public:
     ObjHeader* GetObjHeader() override { return header(); }
 };
 
+class GC {
+public:
+    class ThreadData {};
+    class Allocator {};
+    class ObjectData {};
+};
+
 class ScopedMarkTraits : private Pinned {
 public:
+    using ObjectFactory = gc::ObjectFactory<GC>;
+
     ScopedMarkTraits() {
         RuntimeAssert(instance_ == nullptr, "Only one ScopedMarkTraits is allowed");
         instance_ = this;
@@ -157,7 +166,7 @@ private:
 size_t GetObjectsSize(std::initializer_list<std::reference_wrapper<BaseObject>> objects) {
     size_t size = 0;
     for (auto& object : objects) {
-        size += mm::GetAllocatedHeapSize(object.get().GetObjHeader());
+        size += gc::GetAllocatedHeapSize<ScopedMarkTraits::ObjectFactory>(object.get().GetObjHeader());
     }
     return size;
 }

@@ -7,7 +7,7 @@
 
 using namespace kotlin;
 
-mm::GlobalData::GlobalData() = default;
+mm::GlobalData::GlobalData() : gc_(gc::CreateGC()) {}
 
 // static
 mm::GlobalData mm::GlobalData::instance_ [[clang::no_destroy]];

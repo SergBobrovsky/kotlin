@@ -3,16 +3,17 @@
  * that can be found in the LICENSE file.
  */
 
-#include <TestSupport.hpp>
 #include "MarkAndSweepUtils.hpp"
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
+#include "Allocator.hpp"
 #include "FinalizerHooksTestSupport.hpp"
 #include "ObjectFactory.hpp"
 #include "ObjectTestSupport.hpp"
 #include "ExtraObjectDataFactory.hpp"
+#include "TestSupport.hpp"
 
 using namespace kotlin;
 
@@ -62,7 +63,7 @@ struct GC {
     };
 };
 
-using ObjectFactory = mm::ObjectFactory<GC>;
+using ObjectFactory = gc::ObjectFactory<GC>;
 using ExtraObjectsDataFactory = mm::ExtraObjectDataFactory;
 
 class Object : public test_support::Object<Payload> {

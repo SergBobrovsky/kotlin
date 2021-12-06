@@ -3,8 +3,7 @@
  * that can be found in the LICENSE file.
  */
 
-#ifndef RUNTIME_MM_OBJECT_FACTORY_H
-#define RUNTIME_MM_OBJECT_FACTORY_H
+#pragma once
 
 #include <algorithm>
 #include <memory>
@@ -20,7 +19,7 @@
 #include "Utils.hpp"
 
 namespace kotlin {
-namespace mm {
+namespace gc {
 
 namespace internal {
 
@@ -338,7 +337,8 @@ public:
 
     ~ObjectFactoryStorage() {
         // Make sure not to blow up the stack by nested `~Node` calls.
-        for (auto node = std::move(root_); node != nullptr; node = std::move(node->next_)) {}
+        for (auto node = std::move(root_); node != nullptr; node = std::move(node->next_)) {
+        }
     }
 
     // Lock `ObjectFactoryStorage` for safe iteration.
@@ -663,7 +663,17 @@ private:
     Storage storage_;
 };
 
-} // namespace mm
-} // namespace kotlin
+// This does not take into account how much storage did the underlying allocator (malloc/mimalloc) reserved.
+template <typename ObjectFactory>
+size_t GetAllocatedHeapSize(ObjHeader* object) noexcept {
+    RuntimeAssert(object->heap(), "Object must be a heap object");
+    const auto* typeInfo = object->type_info();
+    if (typeInfo->IsArray()) {
+        return ObjectFactory::ThreadQueue::ArrayAllocatedSize(typeInfo, object->array()->count_);
+    } else {
+        return ObjectFactory::ThreadQueue::ObjectAllocatedSize(typeInfo);
+    }
+}
 
-#endif // RUNTIME_MM_OBJECT_FACTORY_H
+} // namespace gc
+} // namespace kotlin

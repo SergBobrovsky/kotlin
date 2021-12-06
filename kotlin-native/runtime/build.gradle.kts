@@ -58,10 +58,8 @@ bitcode {
             "${target}Objc",
             "${target}ExceptionsSupport",
             "${target}LegacyMemoryManager",
-            "${target}ExperimentalMemoryManagerNoop",
-            "${target}ExperimentalMemoryManagerStms",
-            "${target}CommonGcNoop",
-            "${target}CommonGcStms",
+            "${target}ExperimentalMemoryManager",
+            "${target}CommonGc",
             "${target}SameThreadMsGc",
             "${target}NoopGc"
         )
@@ -169,33 +167,23 @@ bitcode {
         includeRuntime()
     }
 
-    create("experimental_memory_manager_noop", file("src/mm")) {
-        headersDirs += files("src/gc/noop/cpp", "src/gc/common/cpp")
+    create("experimental_memory_manager", file("src/mm")) {
+        headersDirs += files("src/gc/common/cpp")
         includeRuntime()
     }
 
-    create("experimental_memory_manager_stms", file("src/mm")) {
-        headersDirs += files("src/gc/stms/cpp", "src/gc/common/cpp")
-        includeRuntime()
-    }
-
-    create("common_gc_noop", file("src/gc/common")) {
-        headersDirs += files("src/gc/noop/cpp", "src/mm/cpp")
-        includeRuntime()
-    }
-
-    create("common_gc_stms", file("src/gc/common")) {
-        headersDirs += files("src/gc/stms/cpp", "src/mm/cpp")
+    create("common_gc", file("src/gc/common")) {
+        headersDirs += files("src/mm/cpp")
         includeRuntime()
     }
 
     create("noop_gc", file("src/gc/noop")) {
-        headersDirs += files("src/gc/noop/cpp", "src/gc/common/cpp", "src/mm/cpp")
+        headersDirs += files("src/gc/common/cpp", "src/mm/cpp")
         includeRuntime()
     }
 
     create("same_thread_ms_gc", file("src/gc/stms")) {
-        headersDirs += files("src/gc/stms/cpp", "src/gc/common/cpp", "src/mm/cpp")
+        headersDirs += files("src/gc/common/cpp", "src/mm/cpp")
         includeRuntime()
     }
 }
@@ -240,8 +228,8 @@ targetList.forEach { targetName ->
             "${targetName}ExperimentalMMMimallocRuntimeTests",
             listOf(
                 "${targetName}Runtime",
-                "${targetName}ExperimentalMemoryManagerStms",
-                "${targetName}CommonGcStms",
+                "${targetName}ExperimentalMemoryManager",
+                "${targetName}CommonGc",
                 "${targetName}SameThreadMsGc",
                 "${targetName}Mimalloc",
                 "${targetName}OptAlloc",
@@ -258,8 +246,8 @@ targetList.forEach { targetName ->
             "${targetName}ExperimentalMMStdAllocRuntimeTests",
             listOf(
                 "${targetName}Runtime",
-                "${targetName}ExperimentalMemoryManagerStms",
-                "${targetName}CommonGcStms",
+                "${targetName}ExperimentalMemoryManager",
+                "${targetName}CommonGc",
                 "${targetName}SameThreadMsGc",
                 "${targetName}StdAlloc",
                 "${targetName}Objc"
@@ -275,8 +263,8 @@ targetList.forEach { targetName ->
             "${targetName}ExperimentalMMNoOpMimallocRuntimeTests",
             listOf(
                 "${targetName}Runtime",
-                "${targetName}ExperimentalMemoryManagerNoop",
-                "${targetName}CommonGcNoop",
+                "${targetName}ExperimentalMemoryManager",
+                "${targetName}CommonGc",
                 "${targetName}NoopGc",
                 "${targetName}Mimalloc",
                 "${targetName}OptAlloc",
@@ -293,8 +281,8 @@ targetList.forEach { targetName ->
             "${targetName}ExperimentalMMNoOpStdAllocRuntimeTests",
             listOf(
                 "${targetName}Runtime",
-                "${targetName}ExperimentalMemoryManagerNoop",
-                "${targetName}CommonGcNoop",
+                "${targetName}ExperimentalMemoryManager",
+                "${targetName}CommonGc",
                 "${targetName}NoopGc",
                 "${targetName}StdAlloc",
                 "${targetName}Objc"

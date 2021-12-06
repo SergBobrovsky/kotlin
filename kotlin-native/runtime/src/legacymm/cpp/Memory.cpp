@@ -3783,5 +3783,3 @@ kotlin::ThreadState kotlin::GetThreadState(MemoryState* thread) noexcept {
 ALWAYS_INLINE kotlin::CalledFromNativeGuard::CalledFromNativeGuard(bool reentrant) noexcept {
     // no-op, used by the new MM only.
 }
-
-const bool kotlin::kSupportsMultipleMutators = true;

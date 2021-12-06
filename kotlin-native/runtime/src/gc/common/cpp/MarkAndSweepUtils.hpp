@@ -9,7 +9,7 @@
 #include "ExtraObjectData.hpp"
 #include "FinalizerHooks.hpp"
 #include "Memory.h"
-#include "ObjectOps.hpp"
+#include "ObjectFactory.hpp"
 #include "ObjectTraversal.hpp"
 #include "Runtime.h"
 #include "Types.h"
@@ -42,7 +42,7 @@ MarkStats Mark(KStdVector<ObjHeader*> graySet) noexcept {
                 continue;
             }
             stats.aliveHeapSet++;
-            stats.aliveHeapSetBytes += mm::GetAllocatedHeapSize(top);
+            stats.aliveHeapSetBytes += GetAllocatedHeapSize<typename Traits::ObjectFactory>(top);
         }
 
         if (top->heap() || top->local()) {

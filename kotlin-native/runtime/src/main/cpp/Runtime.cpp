@@ -106,10 +106,6 @@ RuntimeState* initRuntime() {
           stateGuard = kotlin::ThreadStateGuard(result->memoryState, kotlin::ThreadState::kRunnable);
           result->worker = WorkerInit(result->memoryState);
           firstRuntime = atomicAdd(&aliveRuntimesCount, 1) == 1;
-          if (!kotlin::kSupportsMultipleMutators && !firstRuntime) {
-              konan::consoleErrorf("This GC implementation does not support multiple mutator threads.");
-              konan::abort();
-          }
           break;
       case kotlin::compiler::DestroyRuntimeMode::kOnShutdown:
           // First update `aliveRuntimesCount` and then update `globalRuntimeStatus`, for synchronization with
@@ -120,10 +116,6 @@ RuntimeState* initRuntime() {
               RuntimeAssert(lastStatus != kGlobalRuntimeShutdown, "Kotlin runtime was shut down. Cannot create new runtimes.");
           }
           firstRuntime = lastStatus == kGlobalRuntimeUninitialized;
-          if (!kotlin::kSupportsMultipleMutators && !firstRuntime) {
-              konan::consoleErrorf("This GC implementation does not support multiple mutator threads.");
-              konan::abort();
-          }
           result->memoryState = InitMemory(firstRuntime);
           // Switch thread state because worker and globals inits require the runnable state.
           // This call may block if GC requested suspending threads.

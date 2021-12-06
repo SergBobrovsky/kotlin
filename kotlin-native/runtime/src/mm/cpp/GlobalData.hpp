@@ -6,7 +6,6 @@
 #ifndef RUNTIME_MM_GLOBAL_DATA_H
 #define RUNTIME_MM_GLOBAL_DATA_H
 
-#include "ObjectFactory.hpp"
 #include "GlobalsRegistry.hpp"
 #include "GC.hpp"
 #include "GCScheduler.hpp"
@@ -27,9 +26,7 @@ public:
     GlobalsRegistry& globalsRegistry() noexcept { return globalsRegistry_; }
     StableRefRegistry& stableRefRegistry() noexcept { return stableRefRegistry_; }
     ExtraObjectDataFactory& extraObjectDataFactory() noexcept { return extraObjectDataFactory_; }
-    ObjectFactory<gc::GC>& objectFactory() noexcept { return objectFactory_; }
-    gc::GCScheduler& gcScheduler() noexcept { return gcScheduler_; }
-    gc::GC& gc() noexcept { return gc_; }
+    gc::GC& gc() noexcept { return *gc_; }
 
 private:
     GlobalData();
@@ -42,9 +39,7 @@ private:
     GlobalsRegistry globalsRegistry_;
     StableRefRegistry stableRefRegistry_;
     ExtraObjectDataFactory extraObjectDataFactory_;
-    ObjectFactory<gc::GC> objectFactory_;
-    gc::GCScheduler gcScheduler_;
-    gc::GC gc_;
+    KStdUniquePtr<gc::GC> gc_;
 };
 
 } // namespace mm

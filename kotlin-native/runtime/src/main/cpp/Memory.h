@@ -518,8 +518,6 @@ private:
     ThreadStateGuard backingGuard_;
 };
 
-extern const bool kSupportsMultipleMutators;
-
 } // namespace kotlin
 
 #endif // RUNTIME_MEMORY_H

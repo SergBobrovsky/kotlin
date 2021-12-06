@@ -13,6 +13,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
+#include "GCImpl.hpp"
 #include "ExtraObjectData.hpp"
 #include "FinalizerHooksTestSupport.hpp"
 #include "GlobalData.hpp"
@@ -188,10 +189,10 @@ test_support::Object<Payload>& AllocateObjectWithFinalizer(mm::ThreadData& threa
 
 KStdVector<ObjHeader*> Alive(mm::ThreadData& threadData) {
     KStdVector<ObjHeader*> objects;
-    for (auto node : threadData.objectFactoryThreadQueue()) {
+    for (auto node : gc::GetObjectFactoryThreadQueue(threadData.gc())) {
         objects.push_back(node.IsArray() ? node.GetArrayHeader()->obj() : node.GetObjHeader());
     }
-    for (auto node : mm::GlobalData::Instance().objectFactory().LockForIter()) {
+    for (auto node : gc::GetObjectFactory(mm::GlobalData::Instance().gc()).LockForIter()) {
         objects.push_back(node.IsArray() ? node.GetArrayHeader()->obj() : node.GetObjHeader());
     }
     return objects;
@@ -200,7 +201,7 @@ KStdVector<ObjHeader*> Alive(mm::ThreadData& threadData) {
 using Color = gc::SameThreadMarkAndSweep::ObjectData::Color;
 
 Color GetColor(ObjHeader* objHeader) {
-    auto nodeRef = mm::ObjectFactory<gc::SameThreadMarkAndSweep>::NodeRef::From(objHeader);
+    auto nodeRef = gc::ObjectFactory<gc::SameThreadMarkAndSweep>::NodeRef::From(objHeader);
     return nodeRef.GCObjectData().color();
 }
 
@@ -217,16 +218,18 @@ WeakCounter& InstallWeakCounter(mm::ThreadData& threadData, ObjHeader* objHeader
 class SameThreadMarkAndSweepTest : public testing::Test {
 public:
     SameThreadMarkAndSweepTest() {
-        mm::GlobalData::Instance().gcScheduler().ReplaceGCSchedulerDataForTests(
-                [](auto& config, auto scheduleGC) { return gc::internal::MakeEmptyGCSchedulerData(); });
+        gc::GetGCScheduler(mm::GlobalData::Instance().gc()).ReplaceGCSchedulerDataForTests([](auto& config, auto scheduleGC) {
+            return gc::internal::MakeEmptyGCSchedulerData();
+        });
     }
 
     ~SameThreadMarkAndSweepTest() {
         mm::GlobalsRegistry::Instance().ClearForTests();
         mm::GlobalData::Instance().extraObjectDataFactory().ClearForTests();
-        mm::GlobalData::Instance().objectFactory().ClearForTests();
-        mm::GlobalData::Instance().gcScheduler().ReplaceGCSchedulerDataForTests(
-                [](auto& config, auto scheduleGC) { return gc::internal::MakeGCSchedulerData(config, std::move(scheduleGC)); });
+        mm::GlobalData::Instance().gc().ClearForTests();
+        gc::GetGCScheduler(mm::GlobalData::Instance().gc()).ReplaceGCSchedulerDataForTests([](auto& config, auto scheduleGC) {
+            return gc::internal::MakeGCSchedulerData(config, std::move(scheduleGC));
+        });
     }
 
     testing::MockFunction<void(ObjHeader*)>& finalizerHook() { return finalizerHooks_.finalizerHook(); }
@@ -785,7 +788,7 @@ TEST_F(SameThreadMarkAndSweepTest, MultipleMutatorsCollect) {
 
     for (int i = 1; i < kDefaultThreadCount; ++i) {
         gcFutures[i] =
-                mutators[i].Execute([](mm::ThreadData& threadData, Mutator& mutator) { threadData.gc().SafePointFunctionPrologue(); });
+                mutators[i].Execute([](mm::ThreadData& threadData, Mutator& mutator) { SafePointFunctionPrologue(threadData.gc()); });
     }
 
     for (auto& future : gcFutures) {
@@ -906,7 +909,7 @@ TEST_F(SameThreadMarkAndSweepTest, MultipleMutatorsAddToRootSetAfterCollectionRe
     for (int i = 1; i < kDefaultThreadCount; ++i) {
         gcFutures[i] = mutators[i].Execute([i, expandRootSet](mm::ThreadData& threadData, Mutator& mutator) {
             expandRootSet(threadData, mutator, i);
-            threadData.gc().SafePointFunctionPrologue();
+            SafePointFunctionPrologue(threadData.gc());
         });
     }
 
@@ -970,7 +973,7 @@ TEST_F(SameThreadMarkAndSweepTest, CrossThreadReference) {
 
     for (int i = 1; i < kDefaultThreadCount; ++i) {
         gcFutures[i] =
-                mutators[i].Execute([](mm::ThreadData& threadData, Mutator& mutator) { threadData.gc().SafePointFunctionPrologue(); });
+                mutators[i].Execute([](mm::ThreadData& threadData, Mutator& mutator) { SafePointFunctionPrologue(threadData.gc()); });
     }
 
     for (auto& future : gcFutures) {
@@ -1034,7 +1037,7 @@ TEST_F(SameThreadMarkAndSweepTest, MultipleMutatorsWeaks) {
 
     for (int i = 1; i < kDefaultThreadCount; ++i) {
         gcFutures[i] = mutators[i].Execute([weak](mm::ThreadData& threadData, Mutator& mutator) {
-            threadData.gc().SafePointFunctionPrologue();
+            SafePointFunctionPrologue(threadData.gc());
             EXPECT_THAT((*weak)->referred, nullptr);
         });
     }
@@ -1092,7 +1095,7 @@ TEST_F(SameThreadMarkAndSweepTest, NewThreadsWhileRequestingCollection) {
     // All the other threads are stopping at safe points.
     for (int i = 1; i < kDefaultThreadCount; ++i) {
         gcFutures[i] =
-                mutators[i].Execute([](mm::ThreadData& threadData, Mutator& mutator) { threadData.gc().SafePointFunctionPrologue(); });
+                mutators[i].Execute([](mm::ThreadData& threadData, Mutator& mutator) { SafePointFunctionPrologue(threadData.gc()); });
     }
 
     // GC will be completed first
@@ -1163,7 +1166,7 @@ TEST_F(SameThreadMarkAndSweepTest, FreeObjectWithFreeWeakReversedOrder) {
         auto &weak_local = InstallWeakCounter(threadData, object1.load()->header(), holder.slot());
         weak = &weak_local;
         *holder.slot() = nullptr;
-        while (!done) threadData.gc().SafePointLoopBody();
+        while (!done) SafePointLoopBody(threadData.gc());
     });
 
     f0.wait();

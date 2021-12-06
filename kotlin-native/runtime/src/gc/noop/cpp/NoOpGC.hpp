@@ -9,7 +9,6 @@
 #include <cstddef>
 
 #include "Allocator.hpp"
-#include "GCScheduler.hpp"
 #include "Utils.hpp"
 #include "Types.h"
 
@@ -33,9 +32,6 @@ public:
     public:
         using ObjectData = NoOpGC::ObjectData;
 
-        explicit ThreadData(NoOpGC& gc, mm::ThreadData& threadData) noexcept {}
-        ~ThreadData() = default;
-
         void SafePointFunctionPrologue() noexcept {}
         void SafePointLoopBody() noexcept {}
         void SafePointAllocation(size_t size) noexcept {}
@@ -51,11 +47,6 @@ public:
 
     NoOpGC() noexcept {}
     ~NoOpGC() = default;
-
-    GCScheduler& scheduler() noexcept { return scheduler_; }
-
-private:
-    GCScheduler scheduler_;
 };
 
 } // namespace gc

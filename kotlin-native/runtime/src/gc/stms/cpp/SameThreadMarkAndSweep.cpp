@@ -23,13 +23,15 @@ using namespace kotlin;
 namespace {
 
 struct MarkTraits {
+    using ObjectFactory = gc::ObjectFactory<gc::SameThreadMarkAndSweep>;
+
     static bool IsMarked(ObjHeader* object) noexcept {
-        auto& objectData = mm::ObjectFactory<gc::SameThreadMarkAndSweep>::NodeRef::From(object).GCObjectData();
+        auto& objectData = gc::ObjectFactory<gc::SameThreadMarkAndSweep>::NodeRef::From(object).GCObjectData();
         return objectData.color() == gc::SameThreadMarkAndSweep::ObjectData::Color::kBlack;
     }
 
     static bool TryMark(ObjHeader* object) noexcept {
-        auto& objectData = mm::ObjectFactory<gc::SameThreadMarkAndSweep>::NodeRef::From(object).GCObjectData();
+        auto& objectData = gc::ObjectFactory<gc::SameThreadMarkAndSweep>::NodeRef::From(object).GCObjectData();
         if (objectData.color() == gc::SameThreadMarkAndSweep::ObjectData::Color::kBlack) return false;
         objectData.setColor(gc::SameThreadMarkAndSweep::ObjectData::Color::kBlack);
         return true;
@@ -37,13 +39,13 @@ struct MarkTraits {
 };
 
 struct SweepTraits {
-    using ObjectFactory = mm::ObjectFactory<gc::SameThreadMarkAndSweep>;
+    using ObjectFactory = gc::ObjectFactory<gc::SameThreadMarkAndSweep>;
     using ExtraObjectsFactory = mm::ExtraObjectDataFactory;
 
     static bool IsMarkedByExtraObject(mm::ExtraObjectData &object) noexcept {
         auto *baseObject = object.GetBaseObject();
         if (!baseObject->heap()) return true;
-        auto& objectData = mm::ObjectFactory<gc::SameThreadMarkAndSweep>::NodeRef::From(baseObject).GCObjectData();
+        auto& objectData = gc::ObjectFactory<gc::SameThreadMarkAndSweep>::NodeRef::From(baseObject).GCObjectData();
         return objectData.color() == gc::SameThreadMarkAndSweep::ObjectData::Color::kBlack;
     }
 
@@ -56,7 +58,7 @@ struct SweepTraits {
 };
 
 struct FinalizeTraits {
-    using ObjectFactory = mm::ObjectFactory<gc::SameThreadMarkAndSweep>;
+    using ObjectFactory = gc::ObjectFactory<gc::SameThreadMarkAndSweep>;
 };
 
 // Global, because it's accessed on a hot path: avoid memory load from `this`.
@@ -73,7 +75,7 @@ ALWAYS_INLINE void gc::SameThreadMarkAndSweep::ThreadData::SafePointLoopBody() n
 }
 
 void gc::SameThreadMarkAndSweep::ThreadData::SafePointAllocation(size_t size) noexcept {
-    threadData_.gcScheduler().OnSafePointAllocation(size);
+    scheduler_.OnSafePointAllocation(size);
     SafepointFlag flag = gSafepointFlag.load();
     if (flag != SafepointFlag::kNone) {
         SafePointSlowPath(flag);
@@ -95,7 +97,7 @@ void gc::SameThreadMarkAndSweep::ThreadData::OnOOM(size_t size) noexcept {
 }
 
 ALWAYS_INLINE void gc::SameThreadMarkAndSweep::ThreadData::SafePointRegular(size_t weight) noexcept {
-    threadData_.gcScheduler().OnSafePointRegular(weight);
+    scheduler_.OnSafePointRegular(weight);
     SafepointFlag flag = gSafepointFlag.load();
     if (flag != SafepointFlag::kNone) {
         SafePointSlowPath(flag);
@@ -112,8 +114,9 @@ NO_INLINE void gc::SameThreadMarkAndSweep::ThreadData::SafePointSlowPath(Safepoi
     }
 }
 
-gc::SameThreadMarkAndSweep::SameThreadMarkAndSweep() noexcept {
-    mm::GlobalData::Instance().gcScheduler().SetScheduleGC([]() {
+gc::SameThreadMarkAndSweep::SameThreadMarkAndSweep(ObjectFactory<SameThreadMarkAndSweep>& objectFactory, GCScheduler& scheduler) noexcept :
+    objectFactory_(objectFactory), scheduler_(scheduler) {
+    scheduler_.SetScheduleGC([]() {
         RuntimeLogDebug({kTagGC}, "Scheduling GC by thread %d", konan::currentThreadId());
         gSafepointFlag = SafepointFlag::kNeedsGC;
     });
@@ -132,7 +135,7 @@ bool gc::SameThreadMarkAndSweep::PerformFullGC() noexcept {
     RuntimeLogDebug({kTagGC}, "Requested thread suspension by thread %d", konan::currentThreadId());
     gSafepointFlag = SafepointFlag::kNeedsSuspend;
 
-    mm::ObjectFactory<gc::SameThreadMarkAndSweep>::FinalizerQueue finalizerQueue;
+    ObjectFactory<gc::SameThreadMarkAndSweep>::FinalizerQueue finalizerQueue;
     {
         // Switch state to native to simulate this thread being a GC thread.
         ThreadStateGuard guard(ThreadState::kNative);
@@ -141,7 +144,7 @@ bool gc::SameThreadMarkAndSweep::PerformFullGC() noexcept {
         auto timeSuspendUs = konan::getTimeMicros();
         RuntimeLogDebug({kTagGC}, "Suspended all threads in %" PRIu64 " microseconds", timeSuspendUs - timeStartUs);
 
-        auto& scheduler = mm::GlobalData::Instance().gcScheduler();
+        auto& scheduler = scheduler_;
         scheduler.gcData().OnPerformFullGC();
 
         RuntimeLogInfo(
@@ -150,7 +153,7 @@ bool gc::SameThreadMarkAndSweep::PerformFullGC() noexcept {
         for (auto& thread : mm::GlobalData::Instance().threadRegistry().LockForIter()) {
             // TODO: Maybe it's more efficient to do by the suspending thread?
             thread.Publish();
-            thread.gcScheduler().OnStoppedForGC();
+            thread.gc().OnStoppedForGC();
             size_t stack = 0;
             size_t tls = 0;
             for (auto value : mm::ThreadRootSet(thread)) {
@@ -188,7 +191,7 @@ bool gc::SameThreadMarkAndSweep::PerformFullGC() noexcept {
         RuntimeLogDebug({kTagGC}, "Collected global root set global=%zu stableRef=%zu", global, stableRef);
 
         // Can be unsafe, because we've stopped the world.
-        auto objectsCountBefore = mm::GlobalData::Instance().objectFactory().GetSizeUnsafe();
+        auto objectsCountBefore = objectFactory_.GetSizeUnsafe();
 
         RuntimeLogInfo(
                 {kTagGC}, "Collected root set of size %zu of which %zu are stable refs in %" PRIu64 " microseconds", graySet.size(),
@@ -200,12 +203,12 @@ bool gc::SameThreadMarkAndSweep::PerformFullGC() noexcept {
         gc::SweepExtraObjects<SweepTraits>(mm::GlobalData::Instance().extraObjectDataFactory());
         auto timeSweepExtraObjectsUs = konan::getTimeMicros();
         RuntimeLogDebug({kTagGC}, "Sweeped extra objects in %" PRIu64 " microseconds", timeSweepExtraObjectsUs - timeMarkUs);
-        finalizerQueue = gc::Sweep<SweepTraits>(mm::GlobalData::Instance().objectFactory());
+        finalizerQueue = gc::Sweep<SweepTraits>(objectFactory_);
         auto timeSweepUs = konan::getTimeMicros();
         RuntimeLogDebug({kTagGC}, "Sweeped in %" PRIu64 " microseconds", timeSweepUs - timeSweepExtraObjectsUs);
 
         // Can be unsafe, because we've stopped the world.
-        auto objectsCountAfter = mm::GlobalData::Instance().objectFactory().GetSizeUnsafe();
+        auto objectsCountAfter = objectFactory_.GetSizeUnsafe();
         auto extraObjectsCountAfter = mm::GlobalData::Instance().extraObjectDataFactory().GetSizeUnsafe();
 
         gSafepointFlag = SafepointFlag::kNone;
